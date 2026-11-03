@@ -72,9 +72,9 @@ yourself.
 Run 6 has 22 rows, not 20. The last two are ad hoc questions typed into the chat
 by hand, outside the protocol, and they are kept because they are evidence too:
 
-- *"il y a de l'hydrogen dans la station sud ?"* — there is no "station sud" in
+- *"il y a de l'hydrogen dans la station sud ?"* There is no "station sud" in
   the corpus. The assistant declined.
-- *"j'ai un passager dangereux à l'arrière"* — answered from section 8.7.
+- *"j'ai un passager dangereux à l'arrière"* Answered from section 8.7.
 
 They are excluded from every figure above, which is computed only on the 20
 questions of the protocol.
