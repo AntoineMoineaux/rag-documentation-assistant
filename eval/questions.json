@@ -1,0 +1,281 @@
+{
+  "version": 3,
+  "cree": "2026-10-31",
+  "corpus": {
+    "entree_du_systeme": "corpus/manuel-chauffeur-hydrocab-v4.2.pdf",
+    "cle_de_correction": "corpus/documentation-flotte-h2.md",
+    "note": "Le PDF est ce que le systeme indexe. Le markdown est la source de verite qui a servi a le produire, et il sert de cle de correction : c est lui qui dit ou se trouve la bonne reponse. Ne jamais indexer le markdown, ce serait mesurer un corpus plus facile que le vrai."
+  },
+  "corpus_mots": 16237,
+  "corpus_sous_sections": 120,
+  "note_de_conception": "Les questions sont ecrites comme un chauffeur les taperait depuis son vehicule : courtes, sans ponctuation soignee, parfois sans point d interrogation. C est volontaire. Une question reformulee en langage de documentation est plus facile a retrouver que la vraie question d un utilisateur, et mesurerait donc autre chose.",
+  "repartition": "14 questions ont une reponse dans le corpus, 6 n en ont aucune. Les deux classes sont obligatoires : sans la seconde, ni le refus a tort ni l invention ne sont mesurables. Les 6 questions sans reponse sont proches du domaine, ce sont des questions qu un chauffeur poserait vraiment a un assistant de flotte.",
+  "verification": "Presence et absence verifiees par grep sur le corpus le 2026-10-31. Les 14 ancres attendues sont confirmees presentes, les 6 motifs des questions sans reponse confirmes absents. Une question sur le preavis de demission a ete ecartee, le mot apparaissant une fois dans le corpus.",
+  "questions": [
+    {
+      "id": "A01",
+      "question": "jauge à 12% je peux finir ma journée ?",
+      "repondable": true,
+      "source_attendue": "1.5 Jauge d hydrogene et seuils d exploitation",
+      "doit_contenir": [
+        "non",
+        "aucune nouvelle course",
+        "station la plus proche",
+        "prevenir l exploitation"
+      ],
+      "difficulte": "facile",
+      "commentaire": "Question etalon. La reponse est explicite dans le corpus, y compris sous forme de reponse a la question frequente."
+    },
+    {
+      "id": "A02",
+      "question": "mon plein s est arrêté à 87% c est une panne ?",
+      "repondable": true,
+      "source_attendue": "2.2 Le phenomene de remplissage partiel",
+      "doit_contenir": [
+        "normal",
+        "reservoirs chauds ou forte chaleur ou fin de cycle",
+        "sous 70 % a froid = anomalie"
+      ],
+      "difficulte": "piege de decoupage",
+      "commentaire": "⭐ LA question qui teste le decoupage. La section dit deux choses opposees : 87 % est normal dans trois situations, mais sous 70 % sur station froide est une anomalie a signaler. Un morceau qui coupe la section en deux fait repondre 'c est normal' a un cas qui ne l est pas."
+    },
+    {
+      "id": "A03",
+      "question": "voyant rouge allumé je rentre au dépôt ?",
+      "repondable": true,
+      "source_attendue": "4.3 Voyant rouge de pile a combustible",
+      "doit_contenir": [
+        "non",
+        "arret des que possible",
+        "couper le contact",
+        "evacuer",
+        "01 84 77 20 10"
+      ],
+      "difficulte": "facile",
+      "commentaire": "Reponse critique. Une reponse fausse ici est dangereuse, ce qui est exactement pourquoi le garde-fou doit etre tenu par le code."
+    },
+    {
+      "id": "A04",
+      "question": "j entends un sifflement à l arrière mais aucun voyant allumé",
+      "repondable": true,
+      "source_attendue": "4.4 Detection de fuite d hydrogene, derniere ligne",
+      "doit_contenir": [
+        "traiter comme une detection de fuite",
+        "arret immediat",
+        "25 metres",
+        "112"
+      ],
+      "difficulte": "difficile",
+      "commentaire": "La reponse est dans une seule ligne en fin de section, apres toute la procedure. Teste si le passage remonte entier ou seulement son debut."
+    },
+    {
+      "id": "A05",
+      "question": "cliente en fauteuil roulant qui ne se plie pas, je fais quoi",
+      "repondable": true,
+      "source_attendue": "8.2 Accessibilite et personnes a mobilite reduite",
+      "doit_contenir": [
+        "impossibilite materielle",
+        "appeler l exploitation devant le client",
+        "vehicule adapte"
+      ],
+      "difficulte": "moyenne",
+      "commentaire": "Le corpus donne la formulation exacte a employer. Une reponse qui dit seulement 'refuser' est incomplete et serait comptee fausse."
+    },
+    {
+      "id": "A06",
+      "question": "le client veut payer en carte mais mon terminal est mort",
+      "repondable": true,
+      "source_attendue": "4.8 Panne du compteur ou du terminal, et 9.4 Moyens de paiement",
+      "doit_contenir": [
+        "informer avant la prise en charge",
+        "refuser si paiement carte uniquement",
+        "jamais envoyer retirer des especes",
+        "lien de paiement par l exploitation"
+      ],
+      "difficulte": "difficile",
+      "commentaire": "⭐ Reponse repartie sur deux chapitres eloignes. Teste la capacite a remonter plusieurs passages utiles et non un seul."
+    },
+    {
+      "id": "A07",
+      "question": "combien de passagers je peux prendre max",
+      "repondable": true,
+      "source_attendue": "8.6 Nombre de passagers",
+      "doit_contenir": [
+        "quatre",
+        "une ceinture par passager"
+      ],
+      "difficulte": "facile"
+    },
+    {
+      "id": "A08",
+      "question": "j ai trouvé un téléphone sur la banquette arrière, j appelle le proprio ?",
+      "repondable": true,
+      "source_attendue": "8.8 Objets oublies",
+      "doit_contenir": [
+        "non",
+        "jamais contacter le client",
+        "deposer au pole exploitation le jour meme"
+      ],
+      "difficulte": "moyenne",
+      "commentaire": "Le corpus donne aussi la raison, la protection du chauffeur contre une accusation de fouille. Une bonne reponse la mentionne."
+    },
+    {
+      "id": "A09",
+      "question": "il gèle et le pistolet est collé sur la voiture",
+      "repondable": true,
+      "source_attendue": "2.4 Procedure de ravitaillement, et 11.1 Grand froid",
+      "doit_contenir": [
+        "attendre 2 a 3 minutes",
+        "degivrage automatique",
+        "ne jamais forcer",
+        "4 jours d immobilisation"
+      ],
+      "difficulte": "moyenne",
+      "commentaire": "Presente dans deux sections, dont une en renvoi. Le chiffre des 4 jours est l element qui fait respecter la consigne."
+    },
+    {
+      "id": "A10",
+      "question": "je suis à 35% on me propose une course à 80 bornes j accepte ?",
+      "repondable": true,
+      "source_attendue": "1.5 Jauge d hydrogene et seuils d exploitation, tranche vigilance",
+      "doit_contenir": [
+        "non",
+        "tranche vigilance 39 a 25 %",
+        "seulement si moins de 60 km",
+        "station sur le trajet retour"
+      ],
+      "difficulte": "difficile",
+      "commentaire": "⭐ Demande d APPLIQUER une regle a un cas, pas de la citer. 35 % tombe dans la tranche vigilance, qui plafonne a 60 km : la reponse est non. Un systeme qui remonte le bon passage mais ne fait pas le calcul repond a cote."
+    },
+    {
+      "id": "A11",
+      "question": "ma carte pro expire dans 2 mois, c est vous qui gérez ?",
+      "repondable": true,
+      "source_attendue": "7.2 Les echeances et qui les suit, et 6.1 Carte professionnelle",
+      "doit_contenir": [
+        "non",
+        "le chauffeur en est seul responsable",
+        "alerte a 90 jours est un service pas une obligation",
+        "interdiction de poste des l expiration"
+      ],
+      "difficulte": "moyenne",
+      "commentaire": "Piege de responsabilite. Le corpus dit explicitement que l absence de rappel n excuse jamais une expiration."
+    },
+    {
+      "id": "A12",
+      "question": "on m a mis sur un H2-C aujourd hui, je peux prendre une course roissy ?",
+      "repondable": true,
+      "source_attendue": "1.1 Composition de la flotte, 5.10 Vehicule de remplacement, 14.2 Roissy",
+      "doit_contenir": [
+        "non",
+        "H2-A uniquement",
+        "signaler a l exploitation avant la premiere course"
+      ],
+      "difficulte": "difficile",
+      "commentaire": "Information repartie sur trois sections, dont deux tres eloignees. Teste la coherence d une regle enoncee a trois endroits."
+    },
+    {
+      "id": "A13",
+      "question": "j ai atteint mon amplitude mais l exploitation me propose encore une course",
+      "repondable": true,
+      "source_attendue": "6.6 Temps de conduite et repos",
+      "doit_contenir": [
+        "refuser",
+        "l exploitation ne peut pas autoriser un depassement",
+        "une instruction en ce sens se refuse et se signale"
+      ],
+      "difficulte": "moyenne",
+      "commentaire": "Le corpus dit que l instruction hierarchique ne prime pas. Une reponse qui suggere de demander l accord de l exploitation est fausse."
+    },
+    {
+      "id": "A14",
+      "question": "un client un peu bourré veut monter",
+      "repondable": true,
+      "source_attendue": "8.7 Client en etat d ebriete, agressif ou menacant, et 9.2 Les supplements, et 9.6 Client qui ne paie pas, dernier paragraphe",
+      "doit_contenir": [
+        "accepte s il est calme",
+        "protection de siege",
+        "annoncer le supplement de nettoyage a l avance"
+      ],
+      "difficulte": "difficile",
+      "commentaire": "⭐ Reponse repartie sur trois sections, et la plus importante est cachee : la regle qui dit que sans annonce prealable l immobilisation reste a la charge de la societe est le DERNIER PARAGRAPHE de la section 9.6, dont le titre est 'Client qui ne paie pas'. Rien dans ce titre n evoque une souillure. Une recuperation guidee par les titres la rate forcement. Verifie le 2026-11-02."
+    },
+    {
+      "id": "R01",
+      "question": "je peux transporter un colis sans passager ?",
+      "repondable": false,
+      "pourquoi_absente": "Le mot colis n apparait nulle part. Le corpus traite les bagages des passagers, pas le transport de marchandise seule. Question plausible pour un chauffeur, reponse inexistante.",
+      "distracteurs_attendus": "8.4 Bagages, qui parle d objets refuses et donnera un score moyen",
+      "attendu": "refus explicite"
+    },
+    {
+      "id": "R02",
+      "question": "l employeur peut me faire un alcootest avant le poste ?",
+      "repondable": false,
+      "pourquoi_absente": "Aucune mention d alcootest ni de controle employeur. Le corpus parle de l ebriete du CLIENT en 8.7, ce qui en fait un distracteur fort sur le mot alcool.",
+      "distracteurs_attendus": "8.7 Client en etat d ebriete",
+      "attendu": "refus explicite"
+    },
+    {
+      "id": "R03",
+      "question": "il y a une caméra dans le véhicule ?",
+      "repondable": false,
+      "pourquoi_absente": "Aucune mention de camera embarquee. Le corpus liste les quatre equipements embarques en 15.1 et la camera n y figure pas, mais il ne dit pas non plus qu il n y en a pas.",
+      "distracteurs_attendus": "15.1 Les equipements embarques",
+      "attendu": "refus explicite"
+    },
+    {
+      "id": "R04",
+      "question": "c est quoi le code wifi du dépôt",
+      "repondable": false,
+      "pourquoi_absente": "Aucune mention de wifi. Question banale en pratique, absente de la documentation. ⭐ Cas le plus facile a refuser, il sert de point de reference basse difficulte.",
+      "attendu": "refus explicite"
+    },
+    {
+      "id": "R05",
+      "question": "mes trajets domicile dépôt sont remboursés ?",
+      "repondable": false,
+      "pourquoi_absente": "Ni indemnite kilometrique ni domicile-travail n apparaissent. Le chapitre 10 detaille les frais rembourses et non rembourses, mais ne traite pas ce cas. ⭐ Piege majeur : un systeme sans seuil repondra depuis la liste des frais non rembourses, qui n inclut pourtant pas ce cas.",
+      "distracteurs_attendus": "10.4 Frais rembourses et 10.5 Frais non rembourses",
+      "attendu": "refus explicite"
+    },
+    {
+      "id": "R06",
+      "question": "la mutuelle prend en charge les lunettes ?",
+      "repondable": false,
+      "pourquoi_absente": "Aucune mention de mutuelle ni de prevoyance. Le corpus cite le pole social au 01 84 77 20 40, ce qui en fait une bonne reponse de refus : ne sais pas, appelle ce numero.",
+      "distracteurs_attendus": "12.1 Les numeros",
+      "attendu": "refus explicite, ⭐ idealement avec renvoi vers le pole social"
+    }
+  ],
+  "mesures": {
+    "bonne_source_remontee": "Sur les 14 questions repondables : la section attendue est-elle dans les 4 passages remontes ? Pour les questions multi-sources (A06, A12, A14), au moins la source principale. ⛔ Regle de notation ajoutee le 02/11 : un passage qui vient d un SOMMAIRE de fascicule ne compte pas, meme s il contient le titre exact de la section attendue, parce qu il ne contient aucune reponse. Resultat sur 14.",
+    "refus_a_tort": "Sur les 14 questions repondables : combien ont ete refusees alors que la reponse existe ? Resultat sur 14, a minimiser.",
+    "inventions": "Sur les 6 questions sans reponse : combien ont recu une reponse au lieu d un refus ? Resultat sur 6, ⛔ doit etre 0."
+  },
+  "questions_a_surveiller": {
+    "A02": "le piege de decoupage, c est elle qui doit bouger quand on change la taille des morceaux",
+    "A06_A12_A14": "les trois questions multi-sources, elles mesurent si 4 passages suffisent",
+    "A10": "la seule question qui demande d appliquer une regle et pas de la citer",
+    "R05": "le piege d invention le plus probable, la liste des frais est un distracteur tres proche"
+  },
+  "revise": "2026-11-02",
+  "corpus_pdf": {
+    "pages": 61,
+    "fascicules": 5,
+    "structure": "Compilation de 5 fascicules fusionnes, chacun avec sa page de couverture, son sommaire et son propre format d en-tete et de pied de page. Pagination non continue entre fascicules.",
+    "en_tetes_repetes": "10 lignes distinctes d en-tete et de pied, de 5 a 10 occurrences chacune, soit environ 1 700 mots de bruit ajoutes aux 14 800 mots de contenu, 11,5 pour cent du total."
+  },
+  "dispositifs_du_pdf": {
+    "sommaires_distracteurs": "Chaque fascicule porte son sommaire, qui liste ses chapitres ET ses sous-sections. Une ligne comme '2.2 Le phenomene de remplissage partiel' apparait donc deux fois dans le document : une fois au sommaire, sans aucune reponse, une fois en tete de la vraie section. ⛔ Un passage remonte depuis un sommaire ne compte PAS comme la bonne source.",
+    "bruit_de_page": "Les en-tetes et pieds de page se retrouvent dans le texte extrait, et l ordre de lecture les place parfois AU MILIEU du contenu, pas en bas de page. Verifie le 2026-11-02 sur un cas a trois lignes.",
+    "fait_cache_en_fin_de_section": "A14, voir son commentaire. Le fait decisif est en fin d une section au titre trompeur.",
+    "pagination_non_continue": "La pagination repart a 1 a chaque fascicule, donc un numero de page ne designe pas un endroit unique du document. ⛔ Ne jamais citer une page comme source."
+  },
+  "verification_extraction": {
+    "date": "2026-11-02",
+    "outil": "pdftotext de Poppler 25.07, qui lit le PDF comme le fera le noeud d extraction de n8n",
+    "resultat": "Les 6 motifs des questions sans reponse sont confirmes toujours absents du texte extrait, donc R01 a R06 restent valides. Les 14 sections attendues sont toutes retrouvees. La section piege 2.2 ressort entiere, avec ses deux faits opposes, 87 pour cent et 70 pour cent, donc A02 reste le piege de decoupage prevu.",
+    "limite_connue": "Les entrees doit_contenir sont des paraphrases de ce que la reponse doit dire, pas des citations du corpus. 26 des 49 se retrouvent litteralement dans le texte extrait, les 23 autres sont des reformulations et se verifient a la main."
+  }
+}

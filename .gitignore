@@ -1,0 +1,26 @@
+# ---------------------------------------------------------------
+# Ce qui ne part PAS dans le depot public.
+# Verifier cette liste avant chaque push, pas seulement la premiere fois.
+# ---------------------------------------------------------------
+
+# Sauvegardes des scripts de modification
+*.bak*
+
+# ⛔ Journal de travail interne.
+# Il contient la strategie d entretien, des citations privees, et un
+# jugement sur des systemes livres a des clients. Il ne se publie pas.
+docs/
+
+# Versions abandonnees, elles renvoient a l ancien corpus
+eval/questions.OBSOLETE-corpus-vault.json
+
+# Brouillon de la page portfolio
+notion-case-study.md
+
+# Systeme et outillage
+node_modules/
+.DS_Store
+Thumbs.db
+*.log
+.env
+.env.*

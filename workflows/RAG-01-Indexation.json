@@ -1,0 +1,256 @@
+{
+  "name": "RAG 01 Indexation",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "d20ef53b-dd89-4627-a47c-9a66b649ddc3",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "A_REMPLACER_ID_DU_PDF_SUR_DRIVE",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        224,
+        0
+      ],
+      "id": "650f4270-4e15-4e2f-8079-74aea7e7e568",
+      "name": "Download file"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.2,
+      "position": [
+        448,
+        0
+      ],
+      "id": "00a86691-1cf1-4b59-b8eb-63b47fcdee53",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "tableName": {
+          "__rl": true,
+          "value": "rag_temoin_passages",
+          "mode": "list",
+          "cachedResultName": "rag_temoin_passages"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        1120,
+        0
+      ],
+      "id": "4e2cdceb-ee2b-49ad-a57c-482f29927aed",
+      "name": "Supabase Vector Store"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        672,
+        208
+      ],
+      "id": "de85d8a8-8d90-4de0-a371-e09eb04800d3",
+      "name": "Embeddings OpenAI"
+    },
+    {
+      "parameters": {
+        "jsonMode": "expressionData",
+        "jsonData": "={{ $json.text }}",
+        "textSplittingMode": "custom",
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "source",
+                "value": "manuel-chauffeur-hydrocab-v4.2.pdf"
+              },
+              {
+                "name": "version",
+                "value": "4.2"
+              },
+              {
+                "name": "section",
+                "value": "={{ $json.section }}"
+              }
+            ]
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        816,
+        208
+      ],
+      "id": "4aae10ea-2acb-4c73-b522-e92ee7a2b35f",
+      "name": "Default Data Loader"
+    },
+    {
+      "parameters": {
+        "chunkSize": 2000,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [
+        816,
+        336
+      ],
+      "id": "3e6183b5-b12a-4588-bee4-877387dbee46",
+      "name": "Recursive Character Text Splitter"
+    },
+    {
+      "parameters": {
+        "jsCode": "// =====================================================================\n// Serie 2 : nettoyage des en-tetes et pieds de page.\n// A placer dans le workflow 1, ENTRE l extraction du PDF et l indexation.\n// Mode du noeud : Run Once for All Items.\n//\n// HYPOTHESE DE TRAVAIL, et c est la seule qu on s autorise :\n// on recoit un PDF, point. On ne sait pas qui l a fabrique, avec quel\n// outil, ni combien de documents ont ete fusionnes dedans. Aucune liste\n// de chaines connues d avance : tout se decouvre dans le texte extrait.\n//\n// LE PRINCIPE. Un en-tete ou un pied de page se repete a chaque page.\n// Une phrase du contenu, non. Donc on ne cherche pas QUOI retirer,\n// on cherche CE QUI SE REPETE. La regle marche sur n importe quel PDF.\n//\n// CE QUE CA DETECTE AUSSI, sans l avoir prevu : une fusion de plusieurs\n// documents se voit, parce qu on obtient plusieurs familles d en-tetes\n// au lieu d une. Le compte rendu les separe.\n// =====================================================================\n\n// ---------- les deux seuls reglages, et ce sont des choix ----------\n// Un document de N pages peut contenir plusieurs sous-documents. Le plus\n// court d entre eux fait peut etre 5 pages, donc son en-tete n apparait\n// que 5 fois. Descendre trop bas attraperait des en-tetes de tableaux\n// legitimes (\"Regle Valeur\", \"Situation Conduite a tenir\").\nconst SEUIL_REPETITION = 4;    // a partir de combien d occurrences on suspecte\nconst LONGUEUR_MAX     = 120;  // un en-tete est court, un paragraphe ne l est pas\n\n// ---------- recuperation du texte, quel que soit le nom du champ ----------\nconst entree = $input.first().json;\nlet texte = entree.text;\nif (typeof texte !== 'string' || texte.length < 500) {\n  texte = Object.keys(entree)\n    .map(k => entree[k])\n    .filter(v => typeof v === 'string')\n    .sort((a, b) => b.length - a.length)[0] || '';\n}\nif (!texte) {\n  throw new Error('aucun champ texte trouve. Champs recus : ' + Object.keys(entree).join(', '));\n}\n\n// comparaison insensible aux accents, a la casse et aux espaces multiples :\n// un meme en-tete peut sortir avec des espacements differents selon la page.\nfunction cle(s) {\n  return String(s == null ? '' : s)\n    .toLowerCase()\n    .normalize('NFD').replace(/[̀-ͯ]/g, '')\n    .replace(/\\s+/g, ' ')\n    .trim();\n}\n\nconst lignes = texte.split('\\n');\n\n// ---------- 1. on compte ----------\nconst compte = {};\nconst exemple = {};   // on garde la forme d origine pour le compte rendu\nlignes.forEach(l => {\n  const k = cle(l);\n  if (k === '' || k.length > LONGUEUR_MAX) return;\n  compte[k] = (compte[k] || 0) + 1;\n  if (!exemple[k]) exemple[k] = l.trim();\n});\n\n// ---------- 2. on decide ----------\nconst aJeter = new Set(\n  Object.keys(compte).filter(k => compte[k] >= SEUIL_REPETITION)\n);\n\n// ---------- 3. on retire ----------\nconst retire = {};\nconst gardees = [];\nlignes.forEach(l => {\n  const k = cle(l);\n  if (k !== '' && aJeter.has(k)) {\n    retire[k] = (retire[k] || 0) + 1;\n    return;\n  }\n  gardees.push(l);\n});\nconst propre = gardees.join('\\n');\n\n// ---------- 4. on rend des comptes ----------\n// Rien n est supprime en silence. Chaque chaine retiree est listee avec son\n// nombre d occurrences, et on montre aussi la zone grise juste sous le seuil :\n// c est la que se cache une erreur de reglage, dans un sens ou dans l autre.\nconst retirees = Object.keys(retire)\n  .sort((a, b) => retire[b] - retire[a])\n  .map(k => ({ fois: retire[k], ligne: exemple[k] }));\n\nconst zoneGrise = Object.keys(compte)\n  .filter(k => compte[k] >= 2 && compte[k] < SEUIL_REPETITION)\n  .sort((a, b) => compte[b] - compte[a])\n  .slice(0, 12)\n  .map(k => ({ fois: compte[k], ligne: exemple[k] }));\n\nconst total = retirees.reduce((s, r) => s + r.fois, 0);\n\nreturn [{\n  json: {\n    text: propre,\n\n    nettoyage: {\n      seuil_utilise: SEUIL_REPETITION + ' occurrences, lignes de ' + LONGUEUR_MAX + ' caracteres maximum',\n\n      lignes_avant: lignes.length,\n      lignes_retirees: total,\n      caracteres_avant: texte.length,\n      caracteres_apres: propre.length,\n      caracteres_gagnes: texte.length - propre.length,\n      part_du_corpus: (texte.length ? ((texte.length - propre.length) / texte.length * 100).toFixed(1) : '0') + ' %',\n\n      // ce que la regle a decide, a relire avant de reindexer\n      motifs_retires: retirees.length,\n      detail: retirees,\n\n      // juste sous le seuil : a regarder, c est la que se trouve une erreur\n      a_verifier_juste_sous_le_seuil: zoneGrise.length ? zoneGrise : 'rien entre 2 et ' + (SEUIL_REPETITION - 1) + ' occurrences',\n    },\n  },\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        0
+      ],
+      "id": "1970468b-87d7-4706-8bb5-d1e65a29bcf0",
+      "name": "Nettoyage"
+    },
+    {
+      "parameters": {
+        "jsCode": "// =====================================================================\n// Serie 3 : decoupage sur la structure du document.\n// A placer dans le workflow 1, APRES le noeud Nettoyage.\n// Mode du noeud : Run Once for All Items.\n//\n// LE PROBLEME QU ON REPARE. Le decoupage a 1000 caracteres coupait au\n// milieu des procedures. Mesure du run du 03/11 : A04 recevait les\n// etapes 1 et 2 du point 4.4, les etapes 3 a 6 tombaient dans l autre\n// morceau. Idem A03 sur le point 4.3. Deux questions sur 14 perdues\n// pour cette seule raison.\n//\n// ⭐ CE QU ON GARANTIT, ET C EST UNE GARANTIE, PAS UNE GRANULARITE :\n// aucun morceau ne coupe une section en deux. Un morceau peut contenir\n// deux ou trois sections voisines, et c est tres bien : une section de\n// 200 caracteres comme \"9.8 Pourboires\" est trop maigre pour vivre\n// seule, elle est plus utile accompagnee de ses voisines.\n//\n// COMMENT, SANS AJOUTER DE NOEUD. Le decoupeur de n8n coupe en priorite\n// sur les lignes vides, puis regroupe les bouts obtenus. Donc :\n//   1. on supprime toutes les lignes vides a l interieur des sections\n//   2. on separe les sections par une ligne vide\n// La ligne vide devient le marqueur exclusif d une frontiere de section,\n// et le decoupeur de n8n ne peut plus couper ailleurs. ⭐ On ne le\n// contourne pas, on lui donne un texte dont les frontieres sont justes.\n//\n// ⛔ ET PAS D IA ICI, VOLONTAIREMENT. Un LLM ne decoupe pas deux fois\n// pareil. On ne pourrait plus attribuer une variation des trois\n// chiffres a un changement plutot qu au hasard du decoupage.\n// =====================================================================\n\n// ---------- les reglages, et ils sont mesures, pas devines ----------\n// Taille des 120 sous-sections du corpus, relevee avant de choisir :\n// moyenne 777 caracteres, mediane 691, et 118 sur 120 sous 2000.\n// ⚠️ CONTRAINTE DURE : MAX_MORCEAU doit rester STRICTEMENT INFERIEUR au\n// Chunk Size du noeud n8n, sinon le decoupeur se remet a couper dans\n// une section et la garantie tombe. Ici 1800 contre 2000.\nconst MAX_MORCEAU = 1800;\n\n// Une ligne de sommaire a exactement la meme forme qu un vrai titre.\n// Ce qui les distingue n est pas leur texte, c est que le sommaire n a\n// rien derriere lui. En dessous de ce corps minimal, c est du sommaire.\nconst MIN_CORPS = 100;\n\n// ---------- reperage des titres ----------\n// \"4.4 Detection de fuite\" oui. \"3. Evacuer tout le monde\" non : un\n// seul nombre, c est une etape de procedure. \"4.2 1er septembre\" non\n// non plus : ce qui suit doit commencer par une lettre, sinon c est le\n// tableau d historique des versions de l annexe.\nconst RE_SOUS  = /^(\\d{1,2}\\.\\d{1,2})\\s+([A-Za-zÀ-ÖØ-öø-ÿ].*)$/;\nconst RE_CHAP  = /^(Chapitre \\d{1,2})\\.\\s*(.*)$/;\nconst RE_AUTRE = /^(Glossaire|Annexe\\.?.*)$/;\n\nfunction titreDe(l) {\n  const s = l.trim();\n  let m = s.match(RE_SOUS);\n  if (m) return { section: m[1], titre: s };\n  m = s.match(RE_CHAP);\n  if (m) return { section: m[1], titre: s };\n  m = s.match(RE_AUTRE);\n  if (m) return { section: m[1], titre: s };\n  return null;\n}\n\n// ---------- recuperation du texte ----------\nconst entree = $input.first().json;\nlet texte = entree.text;\nif (typeof texte !== 'string' || texte.length < 500) {\n  texte = Object.keys(entree)\n    .map(k => entree[k])\n    .filter(v => typeof v === 'string')\n    .sort((a, b) => b.length - a.length)[0] || '';\n}\nif (!texte) {\n  throw new Error('aucun champ texte trouve. Champs recus : ' + Object.keys(entree).join(', '));\n}\n\nconst lignes = texte.split('\\n');\n\n// ---------- 1. couper aux titres ----------\nconst blocs = [];\nlet courant = { section: 'preambule', titre: 'Page de titre et sommaires', lignes: [] };\n\nlignes.forEach(l => {\n  const t = titreDe(l);\n  if (t) {\n    blocs.push(courant);\n    courant = { section: t.section, titre: t.titre, lignes: [l] };\n  } else {\n    courant.lignes.push(l);\n  }\n});\nblocs.push(courant);\n\n// ---------- 2. ecraser les lignes vides internes ----------\n// ⭐ Effet secondaire utile, mesure le 03/11 : le saut de page du PDF\n// laissait une ligne vide au milieu de phrases (\"Sous 15 %,\" d un cote,\n// \"l autonomie restante\" de l autre). Elle disparait ici aussi.\nblocs.forEach(b => {\n  b.texte = b.lignes.join('\\n').replace(/\\n{2,}/g, '\\n').trim();\n  b.corps = b.lignes.slice(1).join('\\n').trim().length;\n  b.estSommaire = b.corps < MIN_CORPS;\n});\n\n// ---------- 3. regrouper les lignes de sommaire consecutives ----------\nconst regroupes = [];\nblocs.forEach(b => {\n  const dernier = regroupes[regroupes.length - 1];\n  if (b.estSommaire && dernier && dernier.estSommaire) {\n    dernier.texte += '\\n' + b.texte;\n    dernier.titre = 'Sommaire';\n    dernier.section = 'sommaire';\n    return;\n  }\n  regroupes.push(Object.assign({}, b));\n});\n\n// ---------- 4. tailler les sections trop longues, sans perdre leur titre ----------\n// ⭐ Le titre est repete en tete de chaque bout. Un bout issu d une\n// coupure continue donc de dire de quelle section il vient, ce qui le\n// rend trouvable et interpretable. Gratuit, et sans aucun modele.\nfunction tailler(bloc) {\n  if (bloc.texte.length <= MAX_MORCEAU) return [bloc.texte];\n  const para = bloc.texte.split('\\n');\n  const bouts = [];\n  let buf = '';\n  para.forEach(p => {\n    const candidat = buf ? buf + '\\n' + p : p;\n    if (candidat.length > MAX_MORCEAU && buf) {\n      bouts.push(buf);\n      buf = bloc.titre + '\\n' + p;\n    } else {\n      buf = candidat;\n    }\n  });\n  if (buf.trim()) bouts.push(buf);\n  return bouts;\n}\n\nconst pieces = [];\nregroupes.forEach(b => {\n  if (!b.texte) return;\n  tailler(b).forEach(txt => pieces.push(txt));\n});\n\n// ---------- 5. une ligne vide entre chaque section, et rien d autre ----------\nconst prepare = pieces.join('\\n\\n');\n\n// ---------- 6. rendre des comptes ----------\nconst sousSections = regroupes.filter(b => /^\\d/.test(b.section));\nconst tailles = pieces.map(p => p.length).sort((a, b) => a - b);\nconst coupees = regroupes\n  .filter(b => b.texte && tailler(b).length > 1)\n  .map(b => b.titre + ' : ' + tailler(b).length + ' bouts');\n\n// La garantie se verifie, elle ne se suppose pas.\nconst plusLongue = tailles[tailles.length - 1];\nconst lignesVidesInternes = pieces.filter(p => /\\n\\n/.test(p)).length;\n\nconst rapport = {\n  reglages: 'coupure aux titres, bouts de ' + MAX_MORCEAU + ' caracteres maximum, corps minimal ' + MIN_CORPS,\n\n  sections_decoupees: pieces.length,\n  sous_sections_trouvees: sousSections.length,\n  // ⭐ Le corpus en compte 120. C est le controle : s il s en ecarte\n  // beaucoup, le reperage des titres est a revoir avant d indexer.\n  attendu: '120 sous-sections dans le corpus',\n\n  taille_min: tailles[0],\n  taille_mediane: tailles[Math.floor(tailles.length / 2)],\n  taille_max: plusLongue,\n\n  sections_taillees_en_plusieurs: coupees.length ? coupees : 'aucune',\n\n  // --- les deux verifications de la garantie ---\n  garantie_taille: plusLongue < MAX_MORCEAU + 1\n    ? 'OK, le plus long bout fait ' + plusLongue + ' caracteres. Mets le Chunk Size de n8n a 2000.'\n    : 'ECHEC, un bout fait ' + plusLongue + ' caracteres',\n  garantie_lignes_vides: lignesVidesInternes === 0\n    ? 'OK, aucune ligne vide a l interieur d une section : n8n ne peut couper qu aux frontieres'\n    : 'ECHEC, ' + lignesVidesInternes + ' sections contiennent encore une ligne vide',\n\n  a_relire: sousSections.slice(0, 15).map(b => b.titre.slice(0, 50)),\n};\n\nreturn [{ json: { text: prepare, decoupage: rapport } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        0
+      ],
+      "id": "8243dd2d-60e5-47ce-90f6-e7a2724fde50",
+      "name": "Decoupage"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Download file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download file": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Nettoyage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recursive Character Text Splitter": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Default Data Loader",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Nettoyage": {
+      "main": [
+        [
+          {
+            "node": "Decoupage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Decoupage": {
+      "main": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "nodeGroups": [],
+  "tags": []
+}
