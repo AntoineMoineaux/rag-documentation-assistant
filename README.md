@@ -1,7 +1,8 @@
-# A document assistant that refuses to guess, and the measurements to prove it
+# An automated documentation assistant that refuses to guess
 
-A retrieval augmented assistant over a 61 page fleet manual, built in n8n, and
-measured on a fixed protocol of 20 control questions across six runs.
+Retrieval augmented generation (RAG) over a company's internal documentation,
+built in n8n, and measured on a fixed protocol of 20 control questions across
+six runs. Tested here on a 61 page safety manual.
 
 **Zero fabricated answers, in every run.**
 
